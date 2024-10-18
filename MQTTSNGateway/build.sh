@@ -21,7 +21,7 @@ build () {
 }
 
 if [ $1 == "udp" ] ; then
-    build $1 $2 $3
+    build $1 $2 $3 $4 $5 $6
 elif [ $1 == "udp6" ] ; then 
     build $1 $2 $3
 elif [ $1 == "xbee" ] ; then

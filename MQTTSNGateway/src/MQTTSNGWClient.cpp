@@ -196,6 +196,7 @@ void Client::setKeepAlive(MQTTSNPacket* packet)
     MQTTSNPacket_connectData param;
     if (packet->getCONNECT(&param))
     {
+		DEBUGLOG("XXX Duration = %d\n", param.duration);
         _keepAliveMsec = param.duration * 1000UL;
         _keepAliveTimer.start(_keepAliveMsec * 1.5);
     }

@@ -102,7 +102,13 @@ void MQTTSNConnectionHandler::handleConnect(Client* client, MQTTSNPacket* packet
     connectData->clientID = client->getClientId();
     connectData->version = _gateway->getGWParams()->mqttVersion;
     connectData->keepAliveTimer = data.duration;
+    DEBUGLOG("XXX Duration1  = %d\n", data.duration);
     connectData->flags.bits.will = data.willFlag;
+	
+#ifdef CLIENTID2UNPW
+    connectData->flags.bits.username = 1;
+	connectData->flags.bits.password = 1;
+#else	
 
     if ((const char*) _gateway->getGWParams()->loginId != nullptr)
     {
@@ -113,6 +119,7 @@ void MQTTSNConnectionHandler::handleConnect(Client* client, MQTTSNPacket* packet
     {
         connectData->flags.bits.password = 1;
     }
+#endif
 
     client->setSessionStatus(false);
     if (data.cleansession)
@@ -147,8 +154,51 @@ void MQTTSNConnectionHandler::handleConnect(Client* client, MQTTSNPacket* packet
         /* CONNECT message was not qued in.
          * create CONNECT message & send it to the broker */
         MQTTGWPacket* mqMsg = new MQTTGWPacket();
-        mqMsg->setCONNECT(client->getConnectData(), (unsigned char*) _gateway->getGWParams()->loginId,
-                (unsigned char*) _gateway->getGWParams()->password);
+	unsigned char* login = (unsigned char*)( _gateway->getGWParams()->loginId);
+	unsigned char* passw = (unsigned char*)( _gateway->getGWParams()->password);
+
+        /* 
+         use 
+         ./build.sh udp -DCLIENTID2UNPW 
+         to make this work. Alias CLIENT To UName PassWord
+        */
+	#ifdef CLIENTID2UNPW
+        /*
+         MQTT-SN lacks of user / password by default.
+         in some use cases with IMEI it can be good if you can restrict the gateway to only the topic the "clientID" has intests in
+         Create a user with IMEI(15 char) and a password (8char)
+         give the user rights for his TOPIC/IMEI/whatever
+         below we separate the clientID into user + password for the MQTT call ( makes only sense if transparent gateway!)
+         with mqtt-sn-pub -i imei+pw you can now write to topic where the user has rights
+         see more in https://support.ram.m2m.telekom.com/apps/docs/device-sdk/mqtt-de/index.html
+        */
+
+        char cidLogin[32];
+        char cidPassw[32];  // the pointer must be valid during the connect call!
+        int imeiLen = 15;
+        int pwLen=8;
+
+        int cidLength = strlen(connectData->clientID);
+        if (cidLength == (imeiLen+pwLen))
+        {
+                for (int i=0; i<imeiLen; i++)
+		{
+			cidLogin[i]=connectData->clientID[i];
+                }
+                cidLogin[imeiLen]=0; // terminate
+	        for (int i=0; i < pwLen; i++)
+		{
+                        cidPassw[i]=connectData->clientID[i+imeiLen];
+                }
+                cidPassw[pwLen]=0;  // terminate
+
+		login = (unsigned char*)cidLogin;
+		passw = (unsigned char*)cidPassw;
+
+              	WRITELOG("MQTTSNConnectionHandler::handleConnect clientID 2 username password %s %s\n", login, passw);
+        }
+        #endif	
+        mqMsg->setCONNECT(client->getConnectData(), login, passw);
         Event* ev1 = new Event();
         ev1->setBrokerSendEvent(client, mqMsg);
         _gateway->getBrokerSendQue()->post(ev1);

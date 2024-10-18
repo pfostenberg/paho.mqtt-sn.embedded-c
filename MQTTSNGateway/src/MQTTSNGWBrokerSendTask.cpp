@@ -163,6 +163,7 @@ void BrokerSendTask::log(Client* client, MQTTGWPacket* packet)
     switch (packet->getType())
     {
     case CONNECT:
+    DEBUGLOG("XXX Duration3  = %d\n", 42);
         WRITELOG(FORMAT_Y_Y_W, currentDateTime(), packet->getName(),
         RIGHTARROWB, client->getClientId(), packet->print(pbuf));
         break;

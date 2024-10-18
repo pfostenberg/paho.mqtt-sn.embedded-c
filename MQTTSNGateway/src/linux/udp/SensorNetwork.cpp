@@ -418,6 +418,16 @@ int UDPPort::recvfrom(int sockfd, uint8_t* buf, uint16_t len, uint8_t flags, Sen
     }
     addr->setAddress(sender.sin_addr.s_addr, sender.sin_port);
     D_NWSTACK("recved from %s:%d length = %d\n", inet_ntoa(sender.sin_addr),ntohs(sender.sin_port), status);
+    
+    if (buf[1]==0x04)
+    {
+		if (buf[5]==0) 
+		{
+		   buf[5]=120; // COT DEFAULT	
+		}
+        D_NWSTACK("XXX3 %02X %02X \n", buf[1],buf[5]);
+    }
+    D_NWSTACK("XXX2 %02X %02X \n", buf[1],buf[5]);
     return status;
 }
 
